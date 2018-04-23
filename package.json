@@ -1,0 +1,30 @@
+{
+  "name": "hapi-queue",
+  "version": "0.0.1",
+  "description": "Simple queue plugin for hapi",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/firstandthird/hapi-queue.git"
+  },
+  "bugs": {
+    "url": "https://github.com/firstandthird/hapi-queue/issues"
+  },
+  "homepage": "https://github.com/firstandthird/hapi-queue",
+  "dependencies": {
+    "@firstandthird/queue": "^1.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-firstandthird": "^4.3.0",
+    "eslint-plugin-import": "^2.11.0",
+    "tap": "^11.1.4"
+  },
+  "keywords": [
+    "hapi",
+    "queue"
+  ],
+  "scripts": {
+    "test": "tap test"
+  }
+}
