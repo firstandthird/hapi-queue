@@ -1,6 +1,15 @@
 const Queue = require('@firstandthird/queue');
-const register = async function(server, options) {
-  const queue = new Queue(options.mongoUrl, 'queue', 1000 * 10, 8);
+
+const defaults = {
+  verbose: false,
+  routeEndpoint: '/queue',
+  jobsDir: process.cwd(),
+  refreshRate: 10 * 1000 // 10 seconds by default
+};
+
+const register = async function(server, pluginOptions) {
+  const options = Object.assign({}, defaults, pluginOptions);
+  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, 8);
 
   queue.createJobs(options.jobsDir);
   queue.bind(server);
@@ -60,9 +69,12 @@ const register = async function(server, options) {
     });
   }
 
-  if (options.autoStart) {
+  server.events.on('start', async() => {
     await queue.start();
-  }
+  });
+  server.events.on('stop', async() => {
+    await queue.stop();
+  });
 };
 
 exports.plugin = {
