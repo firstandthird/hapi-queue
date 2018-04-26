@@ -1,6 +1,6 @@
 {
   "name": "hapi-queue",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Simple queue plugin for hapi",
   "main": "index.js",
   "repository": {
