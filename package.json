@@ -1,5 +1,5 @@
 {
-  "name": "hapi-queue",
+  "name": "@firstandthird/hapi-queue",
   "version": "1.0.0",
   "description": "Simple queue plugin for hapi",
   "main": "index.js",
