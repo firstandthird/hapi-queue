@@ -31,22 +31,12 @@ const register = async function(server, pluginOptions) {
       server.log(['queue', 'cancel'], jobId);
     });
   }
-
-  // pass along queue events to main server:
-  queue.on('queue', (job) => {
-    server.events.emit('queue.queued', job);
-  });
-  queue.on('process', (job) => {
-    server.events.emit('queue.process', job);
-  });
-  queue.on('finish', (job) => {
-    server.events.emit('queue.finish', job);
-  });
-  queue.on('cancel', (jobId) => {
-    server.events.emit('queue.cancel', jobId);
-  });
-  queue.on('group.finish', (groupId) => {
-    server.events.emit('queue.finish', groupId);
+  ['queue', 'process', 'finish', 'cancel', 'group.finish'].forEach(e => {
+    const eventName = `queue.${e}`;
+    server.event(eventName);
+    queue.on(e, async data => {
+      await server.events.emit(eventName, data);
+    });
   });
   queue.on('failed', (job, err) => {
     server.events.emit('queue.failed', job);
