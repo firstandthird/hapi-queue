@@ -4,40 +4,33 @@ const defaults = {
   verbose: false,
   routeEndpoint: '/queue',
   jobsDir: process.cwd(),
+  maxThreads: 5,
   refreshRate: 10 * 1000 // 10 seconds by default
 };
 
 const register = async function(server, pluginOptions) {
   const options = Object.assign({}, defaults, pluginOptions);
-  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, 8);
+  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads);
 
   queue.createJobs(options.jobsDir);
   queue.bind(server);
 
-  if (options.verbose) {
-    queue.on('queue', (job) => {
-      server.log(['queue', 'queued'], job);
-    });
-
-    queue.on('process', (job) => {
-      server.log(['queue', 'process'], job);
-    });
-
-    queue.on('finish', (job) => {
-      server.log(['queue', 'finish'], job);
-    });
-
-    queue.on('cancel', (jobId) => {
-      server.log(['queue', 'cancel'], jobId);
-    });
-  }
   ['queue', 'process', 'finish', 'cancel', 'group.finish'].forEach(e => {
+    // log if verbose
+    if (options.verbose) {
+      queue.on(e, data => {
+        server.log(['queue', e], data);
+      });
+    }
+    // pass events up to the server:
     const eventName = `queue.${e}`;
     server.event(eventName);
     queue.on(e, async data => {
       await server.events.emit(eventName, data);
     });
   });
+
+  // 'failed' will always log and reports an additional err object:
   queue.on('failed', (job, err) => {
     server.events.emit('queue.failed', job);
     server.log(['queue', 'error', 'failed'], {
