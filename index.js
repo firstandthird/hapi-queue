@@ -4,38 +4,34 @@ const defaults = {
   verbose: false,
   routeEndpoint: '/queue',
   jobsDir: process.cwd(),
+  maxThreads: 5,
   refreshRate: 10 * 1000 // 10 seconds by default
 };
 
 const register = async function(server, pluginOptions) {
   const options = Object.assign({}, defaults, pluginOptions);
-  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, 8);
+  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads);
 
   queue.createJobs(options.jobsDir);
   queue.bind(server);
 
-  if (options.verbose) {
-    queue.on('queue', (job) => {
-      server.log(['queue', 'queued'], job);
-    });
+  ['queue', 'process', 'finish', 'cancel', 'group.finish', 'failed'].forEach(e => {
+    // be able to pass events up to the server:
+    const eventName = `queue.${e}`;
+    server.event(eventName);
 
-    queue.on('process', (job) => {
-      server.log(['queue', 'process'], job);
-    });
-
-    queue.on('finish', (job) => {
-      server.log(['queue', 'finish'], job);
-    });
-
-    queue.on('cancel', (jobId) => {
-      server.log(['queue', 'cancel'], jobId);
-    });
-  }
-
-  queue.on('failed', (job, err) => {
-    server.log(['queue', 'error', 'failed'], {
-      job,
-      err
+    queue.on(e, (data, err) => {
+      // always log failures:
+      if (e === 'failed') {
+        server.log(['queue', 'error', 'failed'], {
+          data,
+          err
+        });
+      } else if (options.verbose) {
+        server.log(['queue', e], data);
+      }
+      // pass up to the server:
+      server.events.emit(eventName, data);
     });
   });
 

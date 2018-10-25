@@ -54,15 +54,62 @@ tap.test('supports routeEndpoint', async t => {
     name: 'testJob',
     process(data, queue, j) {}
   });
+  server.queue.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 1234
+    }
+  });
   const response = await server.inject({
     url: '/who/stats'
   });
-  t.match(response.result, {
-    waiting: '0',
-    processing: 0,
-    cancelled: 0,
-    failed: 0,
+  t.match(response.result.waiting, 1);
+  t.isA(response.result.completed, 'number');
+  await server.stop();
+  t.end();
+});
+
+tap.test('passes queue events to server', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      routeEndpoint: '/who',
+      verbose: true,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`,
+      refreshRate: 500
+    }
   });
+  await server.start();
+  const events = {};
+  ['queue', 'process', 'finish', 'cancel', 'group.finish'].forEach(e => {
+    const eventName = `queue.${e}`;
+    server.events.on(eventName, data => {
+      events[eventName] = data;
+    });
+  });
+  server.queue.createJob({
+    name: 'testJob',
+    process(data, queue, j) {
+    }
+  });
+  server.queue.queueJob({
+    name: 'testJob',
+    groupKey: 'testJobGroup',
+    payload: {
+      foo: 1234
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 3000));
+  t.ok(events['queue.process']);
+  t.ok(events['queue.finish']);
+  t.ok(events['queue.group.finish']);
+  t.ok(events['queue.queue']);
+  t.equal(events['queue.process'].name, 'testJob');
+  t.equal(events['queue.finish'].name, 'testJob');
+  t.equal(events['queue.group.finish'], 'testJobGroup');
+  t.equal(events['queue.queue'].name, 'testJob');
   await server.stop();
   t.end();
 });
