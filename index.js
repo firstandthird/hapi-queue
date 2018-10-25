@@ -15,27 +15,23 @@ const register = async function(server, pluginOptions) {
   queue.createJobs(options.jobsDir);
   queue.bind(server);
 
-  ['queue', 'process', 'finish', 'cancel', 'group.finish'].forEach(e => {
-    // log if verbose
-    if (options.verbose) {
-      queue.on(e, data => {
-        server.log(['queue', e], data);
-      });
-    }
-    // pass events up to the server:
+  ['queue', 'process', 'finish', 'cancel', 'group.finish', 'failed'].forEach(e => {
+    // be able to pass events up to the server:
     const eventName = `queue.${e}`;
     server.event(eventName);
-    queue.on(e, async data => {
-      await server.events.emit(eventName, data);
-    });
-  });
 
-  // 'failed' will always log and reports an additional err object:
-  queue.on('failed', (job, err) => {
-    server.events.emit('queue.failed', job);
-    server.log(['queue', 'error', 'failed'], {
-      job,
-      err
+    queue.on(e, (data, err) => {
+      // always log failures:
+      if (e === 'failed') {
+        server.log(['queue', 'error', 'failed'], {
+          data,
+          err
+        });
+      } else if (options.verbose) {
+        server.log(['queue', e], data);
+      }
+      // pass up to the server:
+      server.events.emit(eventName, data);
     });
   });
 
