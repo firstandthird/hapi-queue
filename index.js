@@ -32,6 +32,7 @@ const register = async function(server, pluginOptions) {
           err
         });
       } else if (options.verbose) {
+        data.msg = `${data.name} - ${data.status}`;
         server.log(['queue', e], data);
       }
       // pass up to the server:
