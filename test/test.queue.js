@@ -113,3 +113,41 @@ tap.test('passes queue events to server', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('supports hapi-prom', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('hapi-prom'),
+    options: {
+      mongoUrl,
+    }
+  });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      routeEndpoint: '/who',
+      verbose: true,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  server.queue.createJob({
+    name: 'testJob',
+    process(data, queue, j) {}
+  });
+  server.queue.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  const response = await server.inject({
+    url: '/metrics'
+  });
+  t.equal(response.statusCode, 200);
+  t.includes(response.result, 'waiting{jobName="testJob"} 1');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await server.stop();
+  t.end();
+});
