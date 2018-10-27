@@ -1,8 +1,10 @@
 const Queue = require('@firstandthird/queue');
+const joi = require('joi');
 
 const defaults = {
   verbose: false,
   routeEndpoint: '/queue',
+  findEndpoint: '/find',
   jobsDir: process.cwd(),
   maxThreads: 5,
   refreshRate: 10 * 1000 // 10 seconds by default
@@ -41,6 +43,30 @@ const register = async function(server, pluginOptions) {
   });
 
   server.decorate('server', 'queue', queue);
+
+  server.route({
+    path: options.findEndpoint,
+    method: 'GET',
+    config: {
+      validate: {
+        query: {
+          status: joi.string().optional()
+        }
+      }
+    },
+    handler(request, h) {
+      const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
+      const query = {
+        endTime: {
+          $gt: twentyFour
+        }
+      };
+      if (request.query.status) {
+        query.status = request.query.status;
+      }
+      return queue.findJobs(query);
+    }
+  });
 
   if (options.routeEndpoint) {
     server.route({

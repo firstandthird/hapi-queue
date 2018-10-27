@@ -151,3 +151,56 @@ tap.test('supports hapi-prom', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('supports findEndpoint', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      verbose: true,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  server.queue.createJob({
+    name: 'failJob',
+    process(data, queue, j) {
+      throw new Error('error');
+    }
+  });
+  server.queue.queueJob({
+    name: 'failJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  server.queue.createJob({
+    name: 'okJob',
+    process(data, queue, j) {
+    }
+  });
+  server.queue.queueJob({
+    name: 'okJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  const response = await server.inject({
+    url: '/find'
+  });
+  const response2 = await server.inject({
+    url: '/find?status=failed'
+  });
+  t.ok(response.result.length, '/find returns jobs');
+  response.result.forEach(r => {
+    const val = r.endTime.getTime();
+    const now = new Date().getTime();
+    t.ok(now - val < (24 * 60 * 60 * 1000), '/find gets jobs within 24 hours');
+  });
+  response2.result.forEach(r => t.equal(r.status, 'failed', '/find?status will filter jobs'));
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await server.stop();
+  t.end();
+});

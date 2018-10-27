@@ -12,7 +12,8 @@
   },
   "homepage": "https://github.com/firstandthird/hapi-queue",
   "dependencies": {
-    "@firstandthird/queue": "^1.5.0"
+    "@firstandthird/queue": "^1.5.0",
+    "joi": "^14.0.1"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
