@@ -72,7 +72,7 @@ const register = async function(server, pluginOptions) {
     });
 
     server.route({
-      path: options.findEndpoint,
+      path: options.routeEndpoint,
       method: 'GET',
       config: {
         validate: {

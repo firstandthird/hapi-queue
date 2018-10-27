@@ -152,7 +152,7 @@ tap.test('supports hapi-prom', async t => {
   t.end();
 });
 
-tap.test('supports findEndpoint', async t => {
+tap.test('routeEndpoint suppors find function', async t => {
   const server = new Hapi.Server({ port: 8080 });
   await server.register({
     plugin: require('../index.js'),
@@ -188,18 +188,18 @@ tap.test('supports findEndpoint', async t => {
   });
   await new Promise(resolve => setTimeout(resolve, 1000));
   const response = await server.inject({
-    url: '/find'
+    url: '/queue'
   });
   const response2 = await server.inject({
-    url: '/find?status=failed'
+    url: '/queue?status=failed'
   });
-  t.ok(response.result.length, '/find returns jobs');
+  t.ok(response.result.length, '/queue returns jobs');
   response.result.forEach(r => {
     const val = r.createdOn.getTime();
     const now = new Date().getTime();
-    t.ok(now - val < (24 * 60 * 60 * 1000), '/find gets jobs within 24 hours');
+    t.ok(now - val < (24 * 60 * 60 * 1000), '/queue gets jobs within 24 hours');
   });
-  response2.result.forEach(r => t.equal(r.status, 'failed', '/find?status will filter jobs'));
+  response2.result.forEach(r => t.equal(r.status, 'failed', '/queue?status will filter jobs'));
   await new Promise(resolve => setTimeout(resolve, 1000));
   await server.stop();
   t.end();
