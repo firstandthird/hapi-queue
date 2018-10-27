@@ -84,7 +84,7 @@ const register = async function(server, pluginOptions) {
       handler(request, h) {
         const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
         const query = {
-          startTime: {
+          createdOn: {
             $gt: twentyFour
           }
         };
