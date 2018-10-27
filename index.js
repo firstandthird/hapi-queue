@@ -44,30 +44,6 @@ const register = async function(server, pluginOptions) {
 
   server.decorate('server', 'queue', queue);
 
-  server.route({
-    path: options.findEndpoint,
-    method: 'GET',
-    config: {
-      validate: {
-        query: {
-          status: joi.string().optional()
-        }
-      }
-    },
-    handler(request, h) {
-      const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
-      const query = {
-        endTime: {
-          $gt: twentyFour
-        }
-      };
-      if (request.query.status) {
-        query.status = request.query.status;
-      }
-      return queue.findJobs(query);
-    }
-  });
-
   if (options.routeEndpoint) {
     server.route({
       path: `${options.routeEndpoint}/stats`,
@@ -92,6 +68,30 @@ const register = async function(server, pluginOptions) {
       async handler(request, h) {
         await queue.stop();
         return { status: 'stopped' };
+      }
+    });
+
+    server.route({
+      path: options.findEndpoint,
+      method: 'GET',
+      config: {
+        validate: {
+          query: {
+            status: joi.string().optional()
+          }
+        }
+      },
+      handler(request, h) {
+        const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
+        const query = {
+          startTime: {
+            $gt: twentyFour
+          }
+        };
+        if (request.query.status) {
+          query.status = request.query.status;
+        }
+        return queue.findJobs(query);
       }
     });
   }

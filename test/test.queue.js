@@ -195,7 +195,7 @@ tap.test('supports findEndpoint', async t => {
   });
   t.ok(response.result.length, '/find returns jobs');
   response.result.forEach(r => {
-    const val = r.endTime.getTime();
+    const val = r.startTime.getTime();
     const now = new Date().getTime();
     t.ok(now - val < (24 * 60 * 60 * 1000), '/find gets jobs within 24 hours');
   });
