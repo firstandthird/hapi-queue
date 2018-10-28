@@ -4,7 +4,6 @@ const joi = require('joi');
 const defaults = {
   verbose: false,
   routeEndpoint: '/queue',
-  findEndpoint: '/find',
   jobsDir: process.cwd(),
   maxThreads: 5,
   refreshRate: 10 * 1000 // 10 seconds by default
