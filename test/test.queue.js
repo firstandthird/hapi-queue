@@ -113,3 +113,94 @@ tap.test('passes queue events to server', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('supports hapi-prom', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('hapi-prom'),
+    options: {
+      mongoUrl,
+    }
+  });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      routeEndpoint: '/who',
+      verbose: true,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  server.queue.createJob({
+    name: 'testJob',
+    process(data, queue, j) {}
+  });
+  server.queue.queueJob({
+    name: 'testJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  const response = await server.inject({
+    url: '/metrics'
+  });
+  t.equal(response.statusCode, 200);
+  t.includes(response.result, 'waiting{jobName="testJob"} 1');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await server.stop();
+  t.end();
+});
+
+tap.test('routeEndpoint suppors find function', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      verbose: true,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  server.queue.createJob({
+    name: 'failJob',
+    process(data, queue, j) {
+      throw new Error('error');
+    }
+  });
+  server.queue.queueJob({
+    name: 'failJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  server.queue.createJob({
+    name: 'okJob',
+    process(data, queue, j) {
+    }
+  });
+  server.queue.queueJob({
+    name: 'okJob',
+    payload: {
+      foo: 1234
+    }
+  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  const response = await server.inject({
+    url: '/queue'
+  });
+  const response2 = await server.inject({
+    url: '/queue?status=failed'
+  });
+  t.ok(response.result.length, '/queue returns jobs');
+  response.result.forEach(r => {
+    const val = r.createdOn.getTime();
+    const now = new Date().getTime();
+    t.ok(now - val < (24 * 60 * 60 * 1000), '/queue gets jobs within 24 hours');
+  });
+  response2.result.forEach(r => t.equal(r.status, 'failed', '/queue?status will filter jobs'));
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await server.stop();
+  t.end();
+});

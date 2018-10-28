@@ -1,4 +1,5 @@
 const Queue = require('@firstandthird/queue');
+const joi = require('joi');
 
 const defaults = {
   verbose: false,
@@ -10,7 +11,11 @@ const defaults = {
 
 const register = async function(server, pluginOptions) {
   const options = Object.assign({}, defaults, pluginOptions);
-  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads);
+  let prom;
+  if (server.plugins['hapi-prom']) {
+    prom = server.plugins['hapi-prom'].client;
+  }
+  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads, prom);
 
   queue.createJobs(options.jobsDir);
   queue.bind(server);
@@ -28,6 +33,7 @@ const register = async function(server, pluginOptions) {
           err
         });
       } else if (options.verbose) {
+        data.msg = `${data.name} - ${data.status}`;
         server.log(['queue', e], data);
       }
       // pass up to the server:
@@ -61,6 +67,30 @@ const register = async function(server, pluginOptions) {
       async handler(request, h) {
         await queue.stop();
         return { status: 'stopped' };
+      }
+    });
+
+    server.route({
+      path: options.routeEndpoint,
+      method: 'GET',
+      config: {
+        validate: {
+          query: {
+            status: joi.string().optional()
+          }
+        }
+      },
+      handler(request, h) {
+        const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
+        const query = {
+          createdOn: {
+            $gt: twentyFour
+          }
+        };
+        if (request.query.status) {
+          query.status = request.query.status;
+        }
+        return queue.findJobs(query);
       }
     });
   }
