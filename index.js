@@ -33,8 +33,10 @@ const register = async function(server, pluginOptions) {
           err
         });
       } else if (options.verbose) {
-        data.msg = `${data.name} - ${data.status}`;
-        server.log(['queue', e], data);
+        server.log(['queue', e], {
+          message: `${data.name} - ${data.status}`,
+          payload: data
+        });
       }
       // pass up to the server:
       server.events.emit(eventName, data);
