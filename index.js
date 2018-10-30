@@ -78,7 +78,8 @@ const register = async function(server, pluginOptions) {
       config: {
         validate: {
           query: {
-            status: joi.string().optional()
+            status: joi.string().optional(),
+            groupKey: joi.string().optional()
           }
         }
       },
@@ -91,6 +92,9 @@ const register = async function(server, pluginOptions) {
         };
         if (request.query.status) {
           query.status = request.query.status;
+        }
+        if (request.query.groupKey) {
+          query.groupKey = request.query.groupKey;
         }
         return queue.findJobs(query);
       }
