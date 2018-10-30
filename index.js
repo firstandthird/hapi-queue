@@ -15,7 +15,7 @@ const register = async function(server, pluginOptions) {
   if (server.plugins['hapi-prom']) {
     prom = server.plugins['hapi-prom'].client;
   }
-  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads, prom);
+  const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads, prom, options.timeout);
 
   queue.createJobs(options.jobsDir);
   queue.bind(server);
