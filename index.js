@@ -2,6 +2,7 @@ const Queue = require('@firstandthird/queue');
 const joi = require('joi');
 
 const defaults = {
+  logInterval: 30 * 1000,
   verbose: false,
   routeEndpoint: '/queue',
   jobsDir: process.cwd(),
@@ -12,6 +13,7 @@ const defaults = {
 const register = function(server, pluginOptions) {
   const options = Object.assign({}, defaults, pluginOptions);
   let prom;
+  let logIntervalTimer;
   if (server.plugins['hapi-prom']) {
     prom = server.plugins['hapi-prom'].client;
   }
@@ -122,9 +124,15 @@ const register = function(server, pluginOptions) {
   }
 
   server.events.on('start', async() => {
+    if (options.verbose) {
+      logIntervalTimer = setInterval(async() => {
+        server.log(['hapi-queue', 'stats'], await queue.stats());
+      }, options.logInterval);
+    }
     await queue.start();
   });
   server.events.on('stop', async() => {
+    clearInterval(logIntervalTimer);
     await queue.stop();
   });
 };

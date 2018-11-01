@@ -9,6 +9,7 @@ tap.test('adds queue to hapi', async t => {
     plugin: require('../index.js'),
     options: {
       verbose: true,
+      logInterval: 1000,
       mongoUrl,
       refreshRate: 500,
       jobsDir: `${__dirname}/jobs`
@@ -25,6 +26,12 @@ tap.test('adds queue to hapi', async t => {
       called = true;
     }
   });
+  server.events.on('log', input => {
+    if (input.tags.includes('stats')) {
+      t.ok(input.data.completed);
+      t.ok(input.data.failed);
+    }
+  });
   server.queue.queueJob({
     name: 'testJob',
     payload: {
@@ -32,7 +39,7 @@ tap.test('adds queue to hapi', async t => {
     }
   });
   const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  await wait(1500);
+  await wait(3000);
   await server.stop();
   t.ok(called);
   t.end();
@@ -44,7 +51,7 @@ tap.test('supports routeEndpoint', async t => {
     plugin: require('../index.js'),
     options: {
       routeEndpoint: '/who',
-      verbose: true,
+      verbose: false,
       mongoUrl,
       jobsDir: `${__dirname}/jobs`
     }
