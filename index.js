@@ -9,7 +9,7 @@ const defaults = {
   refreshRate: 10 * 1000 // 10 seconds by default
 };
 
-const register = async function(server, pluginOptions) {
+const register = function(server, pluginOptions) {
   const options = Object.assign({}, defaults, pluginOptions);
   let prom;
   if (server.plugins['hapi-prom']) {
@@ -46,11 +46,31 @@ const register = async function(server, pluginOptions) {
   server.decorate('server', 'queue', queue);
 
   if (options.routeEndpoint) {
+    const extractSince = (paramString) => {
+      if (!paramString) {
+        paramString = '1d';
+      }
+      const day = new RegExp('(\\d+)(d)').exec(paramString);
+      const hour = new RegExp('(\\d+)(h)').exec(paramString);
+      const minute = new RegExp('(\\d+)(m)').exec(paramString);
+      const hourValue = hour ? hour[1] : 0;
+      const dayValue = day ? day[1] : 0;
+      const minuteValue = minute ? minute[1] : 0;
+      const today = new Date();
+      if (hourValue === 0 && minuteValue === 0) {
+        today.setHours(0, 0, 0, 0);
+      } else {
+        today.setSeconds(0, 0);
+      }
+      const thresholdTime = today.getTime();
+      return thresholdTime - ((minuteValue * 60 * 1000) + (dayValue * 86400000) + (hourValue * 3600000));
+    };
+
     server.route({
       path: `${options.routeEndpoint}/stats`,
       method: 'GET',
       handler(request, h) {
-        return queue.stats(null, request.query.groupKey);
+        return queue.stats(extractSince(request.query.since), request.query.groupKey);
       }
     });
 
@@ -78,16 +98,16 @@ const register = async function(server, pluginOptions) {
       config: {
         validate: {
           query: {
+            since: joi.string().default('1d').optional(),
             status: joi.string().optional(),
             groupKey: joi.string().optional()
           }
         }
       },
       handler(request, h) {
-        const twentyFour = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
         const query = {
           createdOn: {
-            $gt: twentyFour
+            $gt: extractSince(request.query.since)
           }
         };
         if (request.query.status) {
