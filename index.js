@@ -50,7 +50,7 @@ const register = async function(server, pluginOptions) {
       path: `${options.routeEndpoint}/stats`,
       method: 'GET',
       handler(request, h) {
-        return queue.stats();
+        return queue.stats(null, request.query.groupKey);
       }
     });
 
