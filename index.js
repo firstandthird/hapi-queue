@@ -107,7 +107,7 @@ const register = function(server, pluginOptions) {
       handler(request, h) {
         const query = {
           createdOn: {
-            $gt: extractSince(request.query.since)
+            $gt: new Date(extractSince(request.query.since))
           }
         };
         if (request.query.status) {
