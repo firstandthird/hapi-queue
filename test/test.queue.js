@@ -26,8 +26,10 @@ tap.test('adds queue to hapi', async t => {
       called = true;
     }
   });
+  let called2 = false;
   server.events.on('log', input => {
     if (input.tags.includes('stats')) {
+      called2 = true;
       t.ok(input.data.completed);
       t.ok(input.data.failed);
     }
@@ -42,6 +44,7 @@ tap.test('adds queue to hapi', async t => {
   await wait(3000);
   await server.stop();
   t.ok(called);
+  t.ok(called2);
   t.end();
 });
 
