@@ -95,6 +95,16 @@ const register = function(server, pluginOptions) {
     });
 
     server.route({
+      path: `${options.routeEndpoint}/pause`,
+      method: 'GET',
+      async handler(request, h) {
+        await queue.pause();
+        return { status: 'paused' };
+      }
+    });
+
+
+    server.route({
       path: options.routeEndpoint,
       method: 'GET',
       config: {

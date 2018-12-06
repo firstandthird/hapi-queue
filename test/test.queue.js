@@ -214,3 +214,43 @@ tap.test('routeEndpoint suppors find function', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('supports routeEndpoint/pause', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      refreshRate: 700,
+      routeEndpoint: '/api',
+      verbose: false,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  let count = 0;
+  server.queue.createJob({
+    name: 'testJob',
+    process(data, queue, j) {
+      count++;
+    }
+  });
+  await server.inject({
+    url: '/api/pause'
+  });
+  for (let i = 0; i < 20; i++) {
+    server.queue.queueJob({
+      name: 'testJob'
+    });
+  }
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  await wait(2000);
+  t.equal(count, 0);
+  await server.inject({
+    url: '/api/start'
+  });
+  await wait(1000);
+  t.notEqual(count, 0);
+  await server.stop();
+  t.end();
+});
