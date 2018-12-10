@@ -254,3 +254,39 @@ tap.test('supports routeEndpoint/pause', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('routeEndpoint/running tells if queue is currently paused or not', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      refreshRate: 700,
+      routeEndpoint: '/api',
+      verbose: false,
+      mongoUrl,
+      jobsDir: `${__dirname}/jobs`
+    }
+  });
+  await server.start();
+  const unpaused = await server.inject({
+    url: '/api/paused'
+  });
+  await server.inject({
+    url: '/api/pause'
+  });
+  const paused = await server.inject({
+    url: '/api/paused'
+  });
+  await server.inject({
+    url: '/api/start'
+  });
+  const unpausedAgain = await server.inject({
+    url: '/api/paused'
+  });
+  t.equal(unpaused.statusCode, 200, 'route returns 200 OK');
+  t.equal(unpaused.result.paused, false, 'indicates when queue is unpaused');
+  t.equal(paused.result.paused, true, 'indicates when queue is paused');
+  t.equal(unpausedAgain.result.paused, false, 'indicates when queue is unpaused again');
+  await server.stop();
+  t.end();
+});

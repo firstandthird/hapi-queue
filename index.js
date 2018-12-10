@@ -103,6 +103,13 @@ const register = function(server, pluginOptions) {
       }
     });
 
+    server.route({
+      path: `${options.routeEndpoint}/paused`,
+      method: 'GET',
+      handler(request, h) {
+        return { paused: queue.paused };
+      }
+    });
 
     server.route({
       path: options.routeEndpoint,
