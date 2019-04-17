@@ -254,3 +254,22 @@ tap.test('supports routeEndpoint/pause', async t => {
   await server.stop();
   t.end();
 });
+
+tap.test('does not error if "jobs" directory not present', async t => {
+  const server = new Hapi.Server({ port: 8080 });
+  await server.register({
+    plugin: require('../index.js'),
+    options: {
+      verbose: true,
+      logInterval: 1000,
+      mongoUrl,
+      refreshRate: 500,
+      jobsDir: `${__dirname}/blah/jobs`
+    }
+  });
+  t.ok(server.queue);
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  await wait(3000);
+  await server.stop();
+  t.end();
+});
