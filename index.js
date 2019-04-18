@@ -1,6 +1,6 @@
 const Queue = require('@firstandthird/queue');
 const joi = require('joi');
-
+const fs = require('fs');
 const defaults = {
   logInterval: 30 * 1000,
   verbose: false,
@@ -18,8 +18,9 @@ const register = function(server, pluginOptions) {
     prom = server.plugins['hapi-prom'].client;
   }
   const queue = new Queue(options.mongoUrl, 'queue', options.refreshRate, options.maxThreads, prom, options.timeout);
-
-  queue.createJobs(options.jobsDir);
+  if (typeof options.jobsDir === 'string' && fs.existsSync(options.jobsDir)) {
+    queue.createJobs(options.jobsDir);
+  }
   queue.bind(server);
 
   ['queue', 'process', 'finish', 'cancel', 'group.finish', 'failed'].forEach(e => {
